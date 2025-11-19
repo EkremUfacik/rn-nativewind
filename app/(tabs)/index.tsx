@@ -1,98 +1,109 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import { IconSymbol } from '@/components/ui/icon-symbol';
+import { useState } from 'react';
+import { FlatList, KeyboardAvoidingView, Platform, SafeAreaView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+import { chatService } from '@/services/chat.service';
+import { MessageParam } from '@anthropic-ai/sdk/resources/messages';
 
-export default function HomeScreen() {
+export default function ChatScreen() {
+  const [message, setMessage] = useState('');
+  const [messages, setMessages] = useState<{ id: string; text: string; isUser: boolean }[]>([
+    { id: '1', text: 'Merhaba! Size nasıl yardımcı olabilirim?', isUser: false },
+  ]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const sendMessage = async () => {
+    if (!message.trim() || isLoading) return;
+    
+    const userMessageText = message;
+    const newMessage = { id: Date.now().toString(), text: userMessageText, isUser: true };
+    setMessages(prev => [...prev, newMessage]);
+    setMessage('');
+    setIsLoading(true);
+
+    try {
+      // Prepare messages for API
+      const apiMessages: MessageParam[] = messages
+        .filter(m => m.id !== '1') // Skip initial greeting if needed, or include it
+        .map(m => ({
+          role: m.isUser ? 'user' : 'assistant',
+          content: m.text
+        }));
+      
+      // Add current user message
+      apiMessages.push({ role: 'user', content: userMessageText });
+
+      const response = await chatService.sendMessage({ messages: apiMessages });
+
+      if (response.success && response.message) {
+        setMessages(prev => [...prev, { 
+          id: (Date.now() + 1).toString(), 
+          text: response.message!, 
+          isUser: false 
+        }]);
+      } else {
+        setMessages(prev => [...prev, { 
+          id: (Date.now() + 1).toString(), 
+          text: `Hata: ${response.error || 'Bir sorun oluştu.'}`, 
+          isUser: false 
+        }]);
+      }
+    } catch (error) {
+      setMessages(prev => [...prev, { 
+        id: (Date.now() + 1).toString(), 
+        text: 'Beklenmeyen bir hata oluştu.', 
+        isUser: false 
+      }]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+    <SafeAreaView className="flex-1 bg-white dark:bg-black">
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        className="flex-1"
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
+      >
+        <View className="flex-1 px-4 pt-4">
+          <FlatList
+            data={messages}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => (
+              <View className={`mb-4 max-w-[80%] p-3 rounded-2xl ${
+                item.isUser 
+                  ? 'self-end bg-blue-500 rounded-br-none' 
+                  : 'self-start bg-gray-200 dark:bg-gray-800 rounded-bl-none border border-gray-200 dark:border-gray-700'
+              }`}>
+                <Text className={`text-base ${item.isUser ? 'text-white' : 'text-black dark:text-white'}`}>
+                  {item.text}
+                </Text>
+              </View>
+            )}
+            contentContainerStyle={{ paddingBottom: 20 }}
+            showsVerticalScrollIndicator={false}
+          />
+        </View>
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+        <View className="p-4 pb-24 border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-black flex-row items-center gap-3">
+          <TextInput
+            className="flex-1 bg-gray-100 dark:bg-gray-900 text-black dark:text-white p-4 rounded-full border border-gray-200 dark:border-gray-800 placeholder:text-gray-500"
+            placeholder="Mesajınızı yazın..."
+            placeholderTextColor="#9CA3AF"
+            value={message}
+            onChangeText={setMessage}
+            multiline
+          />
+          <TouchableOpacity 
+            onPress={sendMessage}
+            disabled={isLoading}
+            className={`p-4 rounded-full ${message.trim() ? 'bg-blue-500' : 'bg-gray-300 dark:bg-gray-700'}`}
+          >
+            <IconSymbol name="paperplane.fill" size={24} color="white" />
+          </TouchableOpacity>
+        </View>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
-  },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
-  },
-});
