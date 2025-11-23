@@ -46,7 +46,14 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="explore"
+        name="generate"
+        options={{
+          title: 'Oluştur',
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="sparkles" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="settings"
         options={{
           title: 'Ayarlar',
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="gear" color={color} />,
