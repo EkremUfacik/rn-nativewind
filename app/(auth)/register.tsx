@@ -2,21 +2,22 @@ import { useAuth } from '@/contexts/auth-context';
 import { Link, router } from 'expo-router';
 import React, { useState } from 'react';
 import {
-    ActivityIndicator,
-    KeyboardAvoidingView,
-    Platform,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 
 export default function RegisterScreen() {
-  const { signUp } = useAuth();
+  const { signUp, signInWithGoogle } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleRegister = async () => {
@@ -48,12 +49,26 @@ export default function RegisterScreen() {
     }
   };
 
+  const handleGoogleLogin = async () => {
+    setIsGoogleLoading(true);
+    setError(null);
+
+    const { error: googleError } = await signInWithGoogle();
+
+    if (googleError) {
+      setError(googleError.message);
+      setIsGoogleLoading(false);
+    } else {
+      router.replace('/(tabs)');
+    }
+  };
+
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       className="flex-1 bg-gray-950"
     >
-      <View className="flex-1 justify-center px-8">
+      <View className="flex-1 justify-center px-8 py-12">
         {/* Header */}
         <View className="mb-12">
           <Text className="text-4xl font-bold text-white text-center mb-2">
@@ -118,7 +133,7 @@ export default function RegisterScreen() {
               isLoading ? 'bg-indigo-700' : 'bg-indigo-600'
             }`}
             onPress={handleRegister}
-            disabled={isLoading}
+            disabled={isLoading || isGoogleLoading}
             activeOpacity={0.8}
           >
             {isLoading ? (
@@ -126,6 +141,27 @@ export default function RegisterScreen() {
             ) : (
               <Text className="text-white text-center font-semibold text-lg">
                 Kayıt Ol
+              </Text>
+            )}
+          </TouchableOpacity>
+
+          <View className="flex-row items-center my-4">
+            <View className="flex-1 h-[1px] bg-gray-800" />
+            <Text className="text-gray-500 px-4">VEYA</Text>
+            <View className="flex-1 h-[1px] bg-gray-800" />
+          </View>
+
+          <TouchableOpacity
+            className="bg-white py-4 rounded-xl flex-row justify-center items-center"
+            onPress={handleGoogleLogin}
+            disabled={isLoading || isGoogleLoading}
+            activeOpacity={0.8}
+          >
+            {isGoogleLoading ? (
+              <ActivityIndicator color="#000" />
+            ) : (
+              <Text className="text-gray-900 text-center font-semibold text-lg">
+                Google ile Kayıt Ol
               </Text>
             )}
           </TouchableOpacity>

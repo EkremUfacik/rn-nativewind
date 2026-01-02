@@ -2,20 +2,21 @@ import { useAuth } from '@/contexts/auth-context';
 import { Link, router } from 'expo-router';
 import React, { useState } from 'react';
 import {
-    ActivityIndicator,
-    KeyboardAvoidingView,
-    Platform,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 
 export default function LoginScreen() {
-  const { signIn } = useAuth();
+  const { signIn, signInWithGoogle } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleLogin = async () => {
@@ -32,6 +33,20 @@ export default function LoginScreen() {
     if (signInError) {
       setError(signInError.message);
       setIsLoading(false);
+    } else {
+      router.replace('/(tabs)');
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    setIsGoogleLoading(true);
+    setError(null);
+
+    const { error: googleError } = await signInWithGoogle();
+
+    if (googleError) {
+      setError(googleError.message);
+      setIsGoogleLoading(false);
     } else {
       router.replace('/(tabs)');
     }
@@ -94,7 +109,7 @@ export default function LoginScreen() {
               isLoading ? 'bg-indigo-700' : 'bg-indigo-600'
             }`}
             onPress={handleLogin}
-            disabled={isLoading}
+            disabled={isLoading || isGoogleLoading}
             activeOpacity={0.8}
           >
             {isLoading ? (
@@ -102,6 +117,27 @@ export default function LoginScreen() {
             ) : (
               <Text className="text-white text-center font-semibold text-lg">
                 Giriş Yap
+              </Text>
+            )}
+          </TouchableOpacity>
+
+          <View className="flex-row items-center my-4">
+            <View className="flex-1 h-[1px] bg-gray-800" />
+            <Text className="text-gray-500 px-4">VEYA</Text>
+            <View className="flex-1 h-[1px] bg-gray-800" />
+          </View>
+
+          <TouchableOpacity
+            className="bg-white py-4 rounded-xl flex-row justify-center items-center"
+            onPress={handleGoogleLogin}
+            disabled={isLoading || isGoogleLoading}
+            activeOpacity={0.8}
+          >
+            {isGoogleLoading ? (
+              <ActivityIndicator color="#000" />
+            ) : (
+              <Text className="text-gray-900 text-center font-semibold text-lg">
+                Google ile Giriş Yap
               </Text>
             )}
           </TouchableOpacity>
